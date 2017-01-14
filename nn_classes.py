@@ -95,8 +95,17 @@ class Population: # genetic algorithm for evolving a population
         self.worst_fitness = 999999999
         self.avg_fitness = 0
 
+    ######################
+    # 
+    # The general flow
+    # 1. Evaluate fitness of each chromosome (should be done already?)
+    # 2. Create a new population
+    # 3. Replace old population with new one
+    # 4. Test - 
+
     # TODO: initiatilize pop with chromosomes of random weights and fitness = 0
     # Question: use random weights, or use from initializing NN, or initialize NN here?
+
 
     def mutate(self, chromo):
         return chromo
@@ -110,6 +119,8 @@ class Population: # genetic algorithm for evolving a population
 
     def evolve(self):
         # evolves the population in 1 generation
+
+
         return none
 
     def get_N_best(self):
