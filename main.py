@@ -18,18 +18,17 @@ class Board:
 
         # setup initial mines positions and draw
         self.mines = []
-        self.mines_positions = []
         for i in range(0, inputs.NUMMINES):
-            pos, data = self.place_mine()
-            self.mines.append(self.canvas.create_rectangle(data))
-            self.mines_positions.append(pos)
+            x = round(random() * inputs.XSIZE)
+            y = round(random() * inputs.YSIZE)
+            self.mines.append({'pos': [x,y], 'elem': self.place_object('mine', [x,y])})
 
         # TEST - place sweepers
         self.sweepers = []
         for i in range(0,10):
             x = round(random() * inputs.XSIZE)
             y = round(random() * inputs.YSIZE)
-            self.sweepers.append({'pos': [x,y], 'elem': self.place_sweeper([x,y])})
+            self.sweepers.append({'pos': [x,y], 'elem': self.place_object('sweeper', [x,y])})
         print(len(self.sweepers))
 
         self.canvas.pack()
@@ -40,29 +39,42 @@ class Board:
     def move_mines_random_1(self):
         self.count += 1
         print("in mines")
+
+        print("mine 0 and 1 positions:")
+        print("mine 0 - x: {}, y: {}".format(self.mines[0]['pos'][0], self.mines[0]['pos'][1]))
+        print("mine 1 - x: {}, y: {}".format(self.mines[1]['pos'][0], self.mines[1]['pos'][1]))
+
         for mine in self.mines:
             x = -5 if random() < .5 else 5
             y = -5 if random() < .5 else 5
-            self.canvas.move(mine, x, y)
+            self.canvas.move(mine['elem'], x, y)
+            mine['pos'] = [mine['pos'][0] + x, mine['pos'][1] + y]
+
+        print("mine 0 and 1 positions after move")
+        print("mine 0 - x: {}, y: {}".format(self.mines[0]['pos'][0], self.mines[0]['pos'][1]))
+        print("mine 1 - x: {}, y: {}".format(self.mines[1]['pos'][0], self.mines[1]['pos'][1]))
+
         self.label.configure(text="Tick: {}".format(self.count))
         self.canvas.move(self.sweepers[0]['elem'], 10, 10)
+        print("the sweepers[0] data:")
+        print(self.sweepers[0])
         self.canvas.update()
         if self.count < self.times:
             self.canvas.after(500, self.move_mines_random_1)
 
-    def place_mine(self):
-        x = round(random() * inputs.XSIZE)
-        y = round(random() * inputs.YSIZE)
-        data = [x-1, y-1, x+1, y+1, {'fill': 'red', 'outline': 'red'}]
-        return [x, y], data
+    def place_object(self, obj, pos):
+        if obj == 'sweeper': 
+            pad = 3
+            data = {"fill": "", "outline": "green", "width": 1}
+        else: 
+            pad = 1
+            data = {"fill": "red", "outline": "red"}
 
-    def place_sweeper(self, pos):
-        # size is 6 x 6 square
-        x1 = pos[0] - 3
-        y1 = pos[1] - 3
-        x2 = pos[0] + 3
-        y2 = pos[1] + 3
-        return self.canvas.create_rectangle(x1, y1, x2, y2, fill="", outline="green", width=1)
+        x1 = pos[0] - pad
+        y1 = pos[1] - pad
+        x2 = pos[0] + pad
+        y2 = pos[1] + pad
+        return self.canvas.create_rectangle(x1, y1, x2, y2, data)
 
     def move_sweeper(self, tracks, rotation):
         # takes left and right track velocities / forces (outputs from NN) and moves the sweeper
