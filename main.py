@@ -64,6 +64,41 @@ class Board:
         y2 = pos[1] + 3
         return self.canvas.create_rectangle(x1, y1, x2, y2, fill="", outline="green", width=1)
 
+    def move_sweeper(self, tracks, rotation):
+        # takes left and right track velocities / forces (outputs from NN) and moves the sweeper
+        left = tracks[0]
+        right = tracks[1]
+
+        # calculate rotational force
+        rot_delta = left - right
+
+        # Force ~ to direction; limit to 1 radian turning radius / 57 degrees
+        rot_delta = min(inputs.MAXTURNRATE, max(-inputs.MAXTURNRATE, rot_delta))
+
+        # update sweeper's facing direction
+        rotation += rot_delta
+
+        # calculate direction unit vector
+        look = [math.sin(rotation), math.cos(rotation)] # x,y
+
+        # calculate absolute speed
+        speed = left + right
+
+        # new position
+        pos = [x * speed for x in look]
+
+        # account for window and wrap around
+        # if x is negative, have it come in from the right
+        if pos[0] < 0: pos[0] = inputs.XSIZE + pos[0]
+        # if x is greater than window size, have it come in the left
+        elif pos[0] > inputs.XSIZE: pos[0] = pos[0] - inputs.XSIZE
+
+        # if y is negative, have it come up from bottom
+        if pos[1] < 0: pos[1] = inputs.YSIZE + pos[1]
+        # if y is > window size, have it come down from top
+        elif pos[1] > inputs.YSIZE: pos[1] = pos[1] - inputs.YSIZE
+
+        return pos
 
 # Board()
 board = Board()
