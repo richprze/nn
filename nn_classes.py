@@ -1,4 +1,4 @@
-from random import randint
+from random import random, randint
 from math import exp
 
 class NeuralNet:
@@ -28,7 +28,7 @@ class NeuralNet:
         weights = []
         # the '+1' on inputs is for the bias/threshold
         for i in range(0,num_inputs+1):
-            weights.append(randint(-1000,1000)/1000.0)
+            weights.append(random())
         return weights
 
     def create_layer(self, num_neurons, num_inputs):
@@ -58,7 +58,7 @@ class NeuralNet:
             the_layer = []
             for neuron in layer:
                 the_layer.append(neuron)
-            print the_layer
+            print(the_layer)
 
     def update_weights(self, weights):
         for i in range(0,len(self.layers)):
@@ -75,14 +75,28 @@ class NeuralNet:
                 for neuron in layer:
                     outputs.append(self.sigmoid(sum([x*y for x,y in zip(inputs, neuron)])))
                 inputs = outputs
-                print outputs
+                print(outputs)
         return outputs
 
     def sigmoid(self, number):
         return (1 / (1 + exp(-number)/1))
 
+class Sweeper:
+    def __init__(self, net, fitness=0):
+        self.brain = net
+        self.fitness = fitness
 
-class Population: # genetic algorithm for evolving a population
+        # random start position
+        self.position = [randint(0,inputs.XSIZE),randint(0,inputs.YSIZE)]
+
+    # Function to take inputs and get outputs
+    def move(self, inputs):
+        return none
+
+
+
+class Population: # Holds the population. Does the "game" then the genetic algorithm to evolve a population
+    # This class will control the sweepers sweeping
     def __init__(self, pop_size, mutation_rate, xover_rate, num_weights):
         self.pop_size = pop_size
         self.mutation_rate = mutation_rate
@@ -94,45 +108,68 @@ class Population: # genetic algorithm for evolving a population
         self.best_fitness = 0
         self.worst_fitness = 999999999
         self.avg_fitness = 0
+        self.chromosomes = []
+
+        # TODO: initiatilize pop with chromosomes of random weights and fitness = 0
+        # Question: use random weights, or use from initializing NN, or initialize NN here?
+
+        # create population of chromosomes 
+        for i in range(0,pop_size):
+            self.chromosomes.append(NeuralNet(inputs.INPUTS, inputs.OUTPUTS, inputs.LAYERS, inputs.NEURONS))
+
+
 
     ######################
     # 
     # The general flow
-    # 1. Evaluate fitness of each chromosome (should be done already?)
-    # 2. Create a new population
-    # 3. Replace old population with new one
-    # 4. Test - 
-
-    # TODO: initiatilize pop with chromosomes of random weights and fitness = 0
-    # Question: use random weights, or use from initializing NN, or initialize NN here?
+    # 1. Run "ticks" - let the sweepers sweep for X number of runs
+    #       a. get inputs for each sweeper: closest mine + facing vector
+    #       b. get output from NN for each sweeper using above inputs
+	#       c. move the sweepers
+	#       d. if found mine -> update fitness
+	#           ** If 2 sweepers find same mine, first one in array "gets" it (record this somehow)
+    #       e. repeat X times
+    # 2. Evolve the population (create a new generation)
+    #       a. Create a new population
+    #       b. Replace old population with new one
+    #       c. Test if end condition is satisfied, if not -> a
+    #
+    ######################
 
 
     def mutate(self, chromo):
         return chromo
 
+    # uses roulette / random selection to pick a chromosome from the pop
     def get_roulette_chromo(self):
-        # uses roulette / random selection to pick a chromosome from the pop
-        return none
+        return chromosomes
 
     def crossover(self, mom, dad):
         return none
 
+    # evolves the population in 1 generation
     def evolve(self):
-        # evolves the population in 1 generation
+        # Repeat until new population size = original population size (complete, new generation)
+        # 1. Selection - select 2 parents (weighted to choose ones with better fitness)
+        # 2. Crossover - crossover parents to create offspring given crossover probability, else return parents
+        # 3. Mutation - mutate the offspring given mutation rate
+        # 4. Placement - put new offspring in new population
 
+        # get 2 parents
+        parents = get_roulette_chromo()
 
         return none
 
+    # returns the N best genomes
     def get_N_best(self):
-        # returns the N best genomes
         return none
 
+    # update init variables
     def calc_fitness_stats(self):
-        # update init variables
         return none
 
+    # reset all fitness vars/stats
     def reset(self):
-        # reset all fitness vars/stats
         self.total_fitness = 0
         self.best_fitness = 0
         self.worst_fitness = 999999999
