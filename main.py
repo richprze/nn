@@ -34,7 +34,7 @@ class Board:
         self.canvas.pack()
         print("before first after call to animate")
         self.canvas.after(500, self.move_mines_random_1)
-        self.root.mainloop()
+        # self.root.mainloop()
 
     def move_mines_random_1(self):
         self.count += 1
@@ -49,6 +49,7 @@ class Board:
             y = -5 if random() < .5 else 5
             self.canvas.move(mine['elem'], x, y)
             mine['pos'] = [mine['pos'][0] + x, mine['pos'][1] + y]
+            # mine['pos'] = [x+y for x,y in zip(min['pos'], [x,y])]
 
         print("mine 0 and 1 positions after move")
         print("mine 0 - x: {}, y: {}".format(self.mines[0]['pos'][0], self.mines[0]['pos'][1]))
@@ -76,7 +77,7 @@ class Board:
         y2 = pos[1] + pad
         return self.canvas.create_rectangle(x1, y1, x2, y2, data)
 
-    def move_sweeper(self, tracks, rotation):
+    def move_sweeper(self, tracks, rotation, pos):
         # takes left and right track velocities / forces (outputs from NN) and moves the sweeper
         left = tracks[0]
         right = tracks[1]
@@ -96,8 +97,11 @@ class Board:
         # calculate absolute speed
         speed = left + right
 
-        # new position
-        pos = [x * speed for x in look]
+        # vector to new position
+        to_new_pos = [x * speed for x in look]
+
+        # new position (sum the two vectors)
+        pos = [x+y for x,y in zip(pos, to_new_pos)]
 
         # account for window and wrap around
         # if x is negative, have it come in from the right
