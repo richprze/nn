@@ -51,23 +51,21 @@ def vec_diff(sweeper, mine):
 
 def move_sweeper(self, tracks, rotation, pos):
     # takes left and right track velocities / forces (outputs from NN) and moves the sweeper
+    # will be between 0 and 1
     left = tracks[0]
     right = tracks[1]
 
-    # calculate rotational force
-    rot_delta = left - right
+    # calculate rotational angle in radians (between 0 and 180 deg, 90 deg = straight)
+    rot_angle = (left - right) * math.pi / 2
 
-    # Force ~ to direction; limit to 1 radian turning radius / 57 degrees
-    rot_delta = min(inputs.MAXTURNRATE, max(-inputs.MAXTURNRATE, rot_delta))
-
-    # update sweeper's facing direction
-    rotation += rot_delta
+    # update sweeper's facing direction (angle from 0 to 360, but in radians)
+    rotation += rot_angle
 
     # calculate direction unit vector
     look = [math.sin(rotation), math.cos(rotation)]  # x,y
 
     # calculate absolute speed
-    speed = left + right
+    speed = (left + right) * inputs.MAXSPEED
 
     # vector to new position
     to_new_pos = [x * speed for x in look]
