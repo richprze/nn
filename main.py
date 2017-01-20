@@ -8,9 +8,7 @@ class Board(object):
     def __init__(self, parent):
         self.root = parent
         self.canvas = Canvas(self.root, bg="white", height=inputs.YSIZE, width=inputs.XSIZE)
-
         self.label = Label(self.root, text="Tick: 0")
-        # self.text.insert(INSERT, "Tick: 0")
         self.label.pack()
         self.canvas.pack()
 
