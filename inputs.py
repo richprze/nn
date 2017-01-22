@@ -23,4 +23,4 @@ NUMELITE = 4
 XSIZE = 400
 YSIZE = 400
 SCALE = 2 # at a minimum everything will be 'SCALE' pixels in size
-FPS = 1 # 1 frames per second
+FPS = 5 # 1 frames per second

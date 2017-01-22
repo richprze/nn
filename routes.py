@@ -32,7 +32,7 @@ for l in left:
         x = math.sin(angle) * length
         y = math.cos(angle) * length
         print("x: {}, y: {}".format(x,y))
-        canvas.create_line(250,250,250-x, 250-y, fill="black")
+        canvas.create_line(250,250,250-x, 250-y, fill="#D3D3D3")
         canvas.create_oval(250-x-2,250-y-2,250-x+2, 250-y+2, fill=fill, outline=fill)
 
 canvas.update()

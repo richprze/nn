@@ -1,5 +1,18 @@
 from random import random, randint
-from math import exp
+from math import exp, pi, sqrt, sin, cos
+import inputs
+import settings
+
+# vector maths
+def vec_dist(vec1, vec2):
+    return sqrt((vec1[0]-vec2[0])**2 + (vec1[1]-vec2[1])**2)
+
+def vec_diff(sweeper, mine):
+    # should be [mine] - [sweeper] to get vec direction from sweeper to mine
+    return [mine[0]-sweeper[0], mine[1]-sweeper[1]]
+
+def obj_tuple(pos, pad):
+    return (pos[0] - pad, pos[1] - pad, pos[0] + pad, pos[1] + pad)
 
 class NeuralNet:
     def __init__(self, num_inputs, num_outputs, num_layers, num_neurons):
@@ -75,24 +88,108 @@ class NeuralNet:
                 for neuron in layer:
                     outputs.append(self.sigmoid(sum([x*y for x,y in zip(inputs, neuron)])))
                 inputs = outputs
-                print(outputs)
+                # print(outputs)
         return outputs
 
     def sigmoid(self, number):
         return (1 / (1 + exp(-number)/1))
 
 class Sweeper:
-    def __init__(self, net, fitness=0):
-        self.brain = net
-        self.fitness = fitness
+    def __init__(self):
+        self.brain = NeuralNet(inputs.INPUTS, inputs.OUTPUTS,  inputs.LAYERS, inputs.NEURONS)
+        self.fitness = 0
 
-        # random start position
+        # random start position & look direction
         self.position = [randint(0,inputs.XSIZE),randint(0,inputs.YSIZE)]
+        self.id = settings.board.place_object('sweeper', self.position)
+        self.rotation = random() * 2 * pi
+
+        self.closest_mine_id = -1
+
+        if(self.id == 41): print(self.brain.get_weights)
 
     # Function to take inputs and get outputs
-    def move(self, inputs):
-        return none
+    def get_output(self, inputs):
+        return self.brain.get_output(inputs)
 
+    def get_closest_mine(self):
+        closest_mine = []
+        closest_mine_id = -1
+        closest_dist = 9999999999
+        # loop thru mines
+        for key, mine in enumerate(settings.mines):
+            distance = vec_dist(mine['pos'], self.position)
+            if distance < closest_dist:
+                closest_dist = distance
+                closest_mine = mine['pos']
+                closest_mine_id = key
+
+        return closest_mine, closest_mine_id
+
+    def move_sweeper(self):
+        # get nearest mine
+        closest_mine, self.closest_mine_id = self.get_closest_mine()
+
+        # get left and right track
+        # if(self.id == 41): print("Sweeper: {}".format(self.id))
+        # if(self.id == 41): print("Mine - x: {}, y: {}".format(closest_mine[0], closest_mine[1]))
+        # if (self.id == 41): print("Rotation: {}, look.x: {}, look.y: {}".format(self.rotation, sin(self.rotation), cos(self.rotation)))
+        tracks = self.get_output([closest_mine[0], closest_mine[1], sin(self.rotation), cos(self.rotation)])
+        # if (self.id == 41): print("Tracks - left: {}, right: {}".format(tracks[0], tracks[1]))
+
+        # takes left and right track velocities / forces (outputs from NN) and moves the sweeper
+        # will be between 0 and 1
+        left = tracks[0]
+        right = tracks[1]
+
+        # calculate rotational angle in radians (between 0 and 180 deg, 90 deg = straight)
+        rot_angle = (left - right) * pi / 2
+
+        # update sweeper's facing direction (angle from 0 to 360, but in radians)
+        self.rotation += rot_angle
+
+        # calculate direction unit vector
+        look = [sin(self.rotation), cos(self.rotation)]  # x,y
+
+        # calculate absolute speed
+        speed = (left + right) * inputs.MAXSPEED
+
+        # vector to new position
+        to_new_pos = [x * speed for x in look]
+
+        # new position (sum the two vectors)
+        self.position = [x + y for x, y in zip(self.position, to_new_pos)]
+
+        # account for window and wrap around
+        # if x is negative, have it come in from the right
+        if self.position[0] < 0:
+            self.position[0] = inputs.XSIZE + self.position[0]
+        # if x is greater than window size, have it come in the left
+        elif self.position[0] > inputs.XSIZE:
+            self.position[0] = self.position[0] - inputs.XSIZE
+
+        # if y is negative, have it come up from bottom
+        if self.position[1] < 0:
+            self.position[1] = inputs.YSIZE + self.position[1]
+        # if y is > window size, have it come down from top
+        elif self.position[1] > inputs.YSIZE:
+            self.position[1] = self.position[1] - inputs.YSIZE
+
+        # move on canvas
+        settings.board.canvas.coords(self.id, obj_tuple(self.position, inputs.SWEEPERSIZE))
+
+    def handle_mines(self):
+        # check if landed on closest mine
+        # future - or if land on ANY mine? Because could go in wrong direction
+        closest_mine = settings.mines[self.closest_mine_id]['pos']
+        if vec_dist(closest_mine, self.position) < 2:
+            # handle it
+            self.fitness += 1
+            settings.num_mines_found += 1
+            settings.board.canvas.delete(settings.mines[self.closest_mine_id]['id'])
+            x = round(random() * inputs.XSIZE)
+            y = round(random() * inputs.YSIZE)
+            settings.mines[self.closest_mine_id] = {'pos': [x, y], 'id': settings.board.place_object('new mine', [x, y])}
 
 
 class Population: # Holds the population. Does the "game" then the genetic algorithm to evolve a population
