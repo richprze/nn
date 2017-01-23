@@ -52,6 +52,7 @@ settings.root = Tk()
 settings.board = Board(settings.root)
 
 times = 100  # inputs.NUMTICKS
+gens = 1 # # of generations to evolve; 1 = no evolution
 
 # initialize mines
 for i in range(0, inputs.NUMMINES):
@@ -59,32 +60,29 @@ for i in range(0, inputs.NUMMINES):
     y = round(random() * inputs.YSIZE)
     settings.mines.append({'pos': [x, y], 'id': settings.board.place_object('mine', [x, y])})
 
-# initialize sweepers
-sweepers = []
-for j in range(0, inputs.NUMSWEEPERS):
-    sweepers.append(Sweeper())
-
-for sweeper in sweepers:
-    closest_mine, id = sweeper.get_closest_mine()
-    settings.board.draw_line(sweeper.position, closest_mine)
-
-settings.board.update()
+population = Population()
 
 last_update = time.time()
-for i in range(0,times):
-    # move sweepers to next positions
-    for sweeper in sweepers:
-        sweeper.move_sweeper()
-        sweeper.handle_mines()
-    # update label
-    settings.board.label.configure(text="Tick: {} | Mines: {}".format(i+1, settings.num_mines_found))
-    # wait for 1 / FPS seconds to pass
-    delta = time.time() - last_update
-    print("{}s elapsed.".format(delta))
-    time.sleep(max(0,1/inputs.FPS - delta))
-    # update board
-    settings.board.update()
+for k in range(0,gens):
+    for l in range(0,times):
+        # move sweepers to next positions
+        for sweeper in population.sweepers:
+            sweeper.move_sweeper()
+            sweeper.handle_mines()
+        # update label
+        settings.board.label.configure(text="Tick: {} | Mines: {}".format(l+1, settings.num_mines_found))
+        # wait for 1 / FPS seconds to pass
+        delta = time.time() - last_update
+        print("{}s elapsed.".format(delta))
+        time.sleep(max(0,1/inputs.FPS - delta))
+        # update board
+        settings.board.update()
 
-    last_update = time.time()
+        last_update = time.time()
+
+    # EVOLVE + UPDATE pop
+
+    # RESET board + REDRAW
+
 
 settings.root.mainloop()

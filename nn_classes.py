@@ -194,25 +194,29 @@ class Sweeper:
 
 class Population: # Holds the population. Does the "game" then the genetic algorithm to evolve a population
     # This class will control the sweepers sweeping
-    def __init__(self, pop_size, mutation_rate, xover_rate, num_weights):
-        self.pop_size = pop_size
-        self.mutation_rate = mutation_rate
-        self.xover_rate = xover_rate
-        self.chromo_len = num_weights
+    def __init__(self):
+        self.pop_size = inputs.NUMSWEEPERS
+        self.mutation_rate = inputs.MUTATIONRATE
+        self.xover_rate = inputs.CROSSOVERRATE
         self.total_fitness = 0
         self.generation = 0
         self.most_fit = 0
         self.best_fitness = 0
         self.worst_fitness = 999999999
         self.avg_fitness = 0
-        self.chromosomes = []
+        self.sweepers = []
 
-        # TODO: initiatilize pop with chromosomes of random weights and fitness = 0
-        # Question: use random weights, or use from initializing NN, or initialize NN here?
+        # initiatilize pop with Sweepers() - (random weights and fitness = 0)
+        for i in range(0, self.pop_size):
+            self.sweepers.append(Sweeper())
 
-        # create population of chromosomes 
-        for i in range(0,pop_size):
-            self.chromosomes.append(NeuralNet(inputs.INPUTS, inputs.OUTPUTS, inputs.LAYERS, inputs.NEURONS))
+        # TODO: remove later, this is just for show
+        # draw lines to closest mine
+        for sweeper in self.sweepers:
+            closest_mine, id = sweeper.get_closest_mine()
+            settings.board.draw_line(sweeper.position, closest_mine)
+
+        settings.board.update()
 
 
 
