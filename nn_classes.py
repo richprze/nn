@@ -108,6 +108,9 @@ class Sweeper:
 
         if(self.id == 41): print(self.brain.get_weights)
 
+    def __repr__(self):
+        return "<Sweeper - pos: {}, id: {}, rot: {}, fitness: {}>".format(self.position, self.id, self.rotation, self.fitness)
+
     # Function to take inputs and get outputs
     def get_output(self, inputs):
         return self.brain.get_output(inputs)
@@ -181,6 +184,8 @@ class Sweeper:
     def handle_mines(self):
         # check if landed on closest mine
         # future - or if land on ANY mine? Because could go in wrong direction
+        #           ** If 2 sweepers find same mine, first one in array "gets" it (record this somehow)
+
         closest_mine = settings.mines[self.closest_mine_id]['pos']
         if vec_dist(closest_mine, self.position) < 2:
             # handle it
@@ -205,6 +210,7 @@ class Population: # Holds the population. Does the "game" then the genetic algor
         self.worst_fitness = 999999999
         self.avg_fitness = 0
         self.sweepers = []
+        self.sweepers_sorted = []
 
         # initiatilize pop with Sweepers() - (random weights and fitness = 0)
         for i in range(0, self.pop_size):
@@ -212,9 +218,11 @@ class Population: # Holds the population. Does the "game" then the genetic algor
 
         # TODO: remove later, this is just for show
         # draw lines to closest mine
+        '''
         for sweeper in self.sweepers:
             closest_mine, id = sweeper.get_closest_mine()
             settings.board.draw_line(sweeper.position, closest_mine)
+        '''
 
         settings.board.update()
 
@@ -222,18 +230,19 @@ class Population: # Holds the population. Does the "game" then the genetic algor
 
     ######################
     # 
-    # The general flow
-    # 1. Run "ticks" - let the sweepers sweep for X number of runs
-    #       a. get inputs for each sweeper: closest mine + facing vector
-    #       b. get output from NN for each sweeper using above inputs
-	#       c. move the sweepers
-	#       d. if found mine -> update fitness
-	#           ** If 2 sweepers find same mine, first one in array "gets" it (record this somehow)
-    #       e. repeat X times
-    # 2. Evolve the population (create a new generation)
-    #       a. Create a new population
-    #       b. Replace old population with new one
-    #       c. Test if end condition is satisfied, if not -> a
+    # The general flow to evolve the population (create a new generation)
+    #
+    #   a. Create a new population:
+    #       1. Selection
+    #       2. Crossover
+    #       3. Mutation
+    #   b. Replace old population with new one
+    #   c. Test if end condition is satisfied, if not -> a
+    #       ** In this case just run through 50 generations and see how it has changed. Status
+    #           - Tot # mines found by Pop
+    #           - Distribution of mines found per sweeper
+    #           - Rate of mines found (# / Ticks)
+    #           - Graph of # mines found (Y) vs. Ticks (X)
     #
     ######################
 
@@ -241,12 +250,41 @@ class Population: # Holds the population. Does the "game" then the genetic algor
     def mutate(self, chromo):
         return chromo
 
+    def sort_sweepers(self):
+        sweeper_fits = [{'id': key, 'fitness': sweeper.fitness} for key, sweeper in enumerate(self.sweepers)]
+        self.sweepers_sorted = sorted(sweeper_fits, key=lambda k: k['fitness'], reverse=True)
+
     # uses roulette / random selection to pick a chromosome from the pop
-    def get_roulette_chromo(self):
-        return chromosomes
+    def get_chromo_roulette(self):
+        total_fitness = 0
+        sweeper_selection = []
+        for sweeper in self.sweepers_sorted:
+            # "+1" to include sweepers with 0 fitness (or do we not want to include them...?
+            total_fitness += sweeper['fitness'] + 1
+            sweeper_selection.extend([sweeper['id'] for i in range(0, sweeper['fitness'] + 1)])
+
+        rand = round(random() * total_fitness)
+        print("chromo roulette:")
+        print("total fitness = {}".format(total_fitness))
+        print("rand: {}".format(rand))
+        print(self.sweepers_sorted)
+        print(sweeper_selection)
+        return sweeper_selection[rand]
+
+    def get_chromo_rank_selection(self):
+        total_fitness = 0
+        sweeper_selection = []
+        rank = len(self.sweepers_sorted)
+        for sweeper in self.sweepers_sorted:
+            total_fitness += rank
+            sweeper_selection.extend([sweeper['id'] for i in range(0, rank)])
+            rank -= 1
+
+        rand = round(random() * total_fitness)
+        return sweeper_selection[rand]
 
     def crossover(self, mom, dad):
-        return none
+        return None
 
     # evolves the population in 1 generation
     def evolve(self):
@@ -256,14 +294,35 @@ class Population: # Holds the population. Does the "game" then the genetic algor
         # 3. Mutation - mutate the offspring given mutation rate
         # 4. Placement - put new offspring in new population
 
-        # get 2 parents
-        parents = get_roulette_chromo()
+        # Sort
+        self.sort_sweepers()
 
-        return none
+        new_pop = []
+
+        # elitism - take top 2 or 4 sweepers and pass on
+        for sweeper in self.sweepers_sorted[0:2]:
+            weights = self.sweepers[sweeper['id']].brain.get_weights()
+            print("Elite ID: {}".format(sweeper['id']))
+            print(weights)
+            new = Sweeper()
+            new.brain.update_weights(weights)
+            new_pop.append(new)
+
+
+        while len(new_pop) < len(self.sweepers):
+            # get 2 parents
+            mom = self.get_chromo_roulette()
+            dad = self.get_chromo_roulette()
+
+            # crossover
+
+            # mutate
+
+        return None
 
     # returns the N best genomes
     def get_N_best(self):
-        return none
+        return None
 
     # update init variables
     def calc_fitness_stats(self):

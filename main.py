@@ -1,6 +1,6 @@
 from tkinter import *
 from random import random
-from nn_classes import NeuralNet, Sweeper, Population, obj_tuple
+from nn_classes import Population, Sweeper, obj_tuple
 import time
 import inputs
 import settings
@@ -62,6 +62,13 @@ for i in range(0, inputs.NUMMINES):
 
 population = Population()
 
+print(population.sweepers[0].brain.get_num_weights())
+weights = population.sweepers[0].brain.get_weights()
+print(weights)
+weights[0] = weights[1]
+population.sweepers[0].brain.update_weights(weights)
+print(population.sweepers[0].brain.get_weights())
+
 last_update = time.time()
 for k in range(0,gens):
     for l in range(0,times):
@@ -81,8 +88,25 @@ for k in range(0,gens):
         last_update = time.time()
 
     # EVOLVE + UPDATE pop
+    population.sort_sweepers()
+    selection = population.get_chromo_roulette()
+    print("sweeper id = {}".format(selection))
+    print(population.sweepers[selection])
 
-    # RESET board + REDRAW
+    # elitism - take top 2 or 4 sweepers and pass on
+    new_pop = []
+
+    for sweeper in population.sweepers_sorted[0:2]:
+        weights = population.sweepers[sweeper['id']].brain.get_weights()
+        print("Elite ID: {}".format(sweeper['id']))
+        print(weights)
+        new = Sweeper()
+        new.brain.update_weights(weights)
+        new_pop.append(new)
+
+
+
+        # RESET board + REDRAW
 
 
 settings.root.mainloop()
