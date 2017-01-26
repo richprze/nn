@@ -88,25 +88,11 @@ for k in range(0,gens):
         last_update = time.time()
 
     # EVOLVE + UPDATE pop
-    population.sort_sweepers()
-    selection = population.get_chromo_roulette()
-    print("sweeper id = {}".format(selection))
-    print(population.sweepers[selection])
-
-    # elitism - take top 2 or 4 sweepers and pass on
-    new_pop = []
-
-    for sweeper in population.sweepers_sorted[0:2]:
-        weights = population.sweepers[sweeper['id']].brain.get_weights()
-        print("Elite ID: {}".format(sweeper['id']))
-        print(weights)
-        new = Sweeper()
-        new.brain.update_weights(weights)
-        new_pop.append(new)
+    population.evolve()
 
 
 
-        # RESET board + REDRAW
+    # RESET board + REDRAW
 
 
 settings.root.mainloop()

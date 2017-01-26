@@ -264,11 +264,6 @@ class Population: # Holds the population. Does the "game" then the genetic algor
             sweeper_selection.extend([sweeper['id'] for i in range(0, sweeper['fitness'] + 1)])
 
         rand = round(random() * total_fitness)
-        print("chromo roulette:")
-        print("total fitness = {}".format(total_fitness))
-        print("rand: {}".format(rand))
-        print(self.sweepers_sorted)
-        print(sweeper_selection)
         return sweeper_selection[rand]
 
     def get_chromo_rank_selection(self):
@@ -284,7 +279,14 @@ class Population: # Holds the population. Does the "game" then the genetic algor
         return sweeper_selection[rand]
 
     def crossover(self, mom, dad):
-        return None
+        if random() >= inputs.CROSSOVERRATE:
+            return [mom, dad]
+        else:
+            xover_pnt = round(random() * (len(mom) - 1))
+            kid1 = mom[:xover_pnt] + dad[xover_pnt:]
+            kid2 = dad[:xover_pnt] + mom[xover_pnt:]
+            return [kid1, kid2]
+
 
     # evolves the population in 1 generation
     def evolve(self):
@@ -294,11 +296,24 @@ class Population: # Holds the population. Does the "game" then the genetic algor
         # 3. Mutation - mutate the offspring given mutation rate
         # 4. Placement - put new offspring in new population
 
+        print("Evolving!")
+
         # Sort
         self.sort_sweepers()
 
         new_pop = []
 
+        ## SHIT ##
+        # Calling Sweeper() actually places the sweeper. So...
+        #   First, make sure all data from prev generation is saved
+        #   Second, remove from board:
+        #       Old mines
+        #       Old sweepers
+        #   Third, reset everything (so removing above could be considered part of the reset)
+        #   Fourth, EVOLVE <- this will place new sweepers on board
+        #   Fifth, start running / ticks again
+
+        
         # elitism - take top 2 or 4 sweepers and pass on
         for sweeper in self.sweepers_sorted[0:2]:
             weights = self.sweepers[sweeper['id']].brain.get_weights()
@@ -310,15 +325,27 @@ class Population: # Holds the population. Does the "game" then the genetic algor
 
 
         while len(new_pop) < len(self.sweepers):
-            # get 2 parents
-            mom = self.get_chromo_roulette()
-            dad = self.get_chromo_roulette()
-
             # crossover
+            # get 2 parents' weights
+            mom = self.sweepers[self.get_chromo_roulette()].brain.get_weights()
+            dad = self.sweepers[self.get_chromo_roulette()].brain.get_weights()
+
+            kids = self.crossover(mom, dad)
+
+            # add to new pop
+            for kid in kids:
+                newkid = Sweeper()
+                newkid.brain.update_weights(kid)
+                new_pop.append(newkid)
 
             # mutate
 
-        return None
+        print("New pop len: {}".format(len(new_pop)))
+        print("Old pop len: {}".format(len(self.sweepers)))
+
+        for sweeper in new_pop:
+            print(sweeper)
+
 
     # returns the N best genomes
     def get_N_best(self):
