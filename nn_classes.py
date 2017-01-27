@@ -2,6 +2,7 @@ from random import random, randint
 from math import exp, pi, sqrt, sin, cos
 import inputs
 import settings
+import time
 
 # vector maths
 def vec_dist(vec1, vec2):
@@ -101,7 +102,7 @@ class Sweeper:
 
         # random start position & look direction
         self.position = [randint(0,inputs.XSIZE),randint(0,inputs.YSIZE)]
-        self.id = settings.board.place_object('sweeper', self.position)
+        self.id = -1 #settings.board.place_object('sweeper', self.position)
         self.rotation = random() * 2 * pi
 
         self.closest_mine_id = -1
@@ -110,6 +111,9 @@ class Sweeper:
 
     def __repr__(self):
         return "<Sweeper - pos: {}, id: {}, rot: {}, fitness: {}>".format(self.position, self.id, self.rotation, self.fitness)
+
+    def place(self):
+        self.id = settings.board.place_object('sweeper', self.position)
 
     # Function to take inputs and get outputs
     def get_output(self, inputs):
@@ -214,7 +218,10 @@ class Population: # Holds the population. Does the "game" then the genetic algor
 
         # initiatilize pop with Sweepers() - (random weights and fitness = 0)
         for i in range(0, self.pop_size):
-            self.sweepers.append(Sweeper())
+            sweeper = Sweeper()
+            sweeper.place()
+            print(sweeper.id)
+            self.sweepers.append(sweeper)
 
         # TODO: remove later, this is just for show
         # draw lines to closest mine
@@ -246,9 +253,6 @@ class Population: # Holds the population. Does the "game" then the genetic algor
     #
     ######################
 
-
-    def mutate(self, chromo):
-        return chromo
 
     def sort_sweepers(self):
         sweeper_fits = [{'id': key, 'fitness': sweeper.fitness} for key, sweeper in enumerate(self.sweepers)]
@@ -287,6 +291,10 @@ class Population: # Holds the population. Does the "game" then the genetic algor
             kid2 = dad[:xover_pnt] + mom[xover_pnt:]
             return [kid1, kid2]
 
+    def mutate(self, chromo):
+        # TODO: mutation
+        return chromo
+
 
     # evolves the population in 1 generation
     def evolve(self):
@@ -296,7 +304,7 @@ class Population: # Holds the population. Does the "game" then the genetic algor
         # 3. Mutation - mutate the offspring given mutation rate
         # 4. Placement - put new offspring in new population
 
-        print("Evolving!")
+        print("Evolving {} sweepers!".format(len(self.sweepers)))
 
         # Sort
         self.sort_sweepers()
@@ -332,19 +340,29 @@ class Population: # Holds the population. Does the "game" then the genetic algor
 
             kids = self.crossover(mom, dad)
 
+            # Mutate
+            kids = [self.mutate(x) for x in kids]
+
+
             # add to new pop
             for kid in kids:
                 newkid = Sweeper()
                 newkid.brain.update_weights(kid)
                 new_pop.append(newkid)
 
-            # mutate
 
         print("New pop len: {}".format(len(new_pop)))
         print("Old pop len: {}".format(len(self.sweepers)))
 
+        settings.board.reset()
+        time.sleep(2)
+        settings.board.create_mines()
+        # place new sweepers
         for sweeper in new_pop:
             print(sweeper)
+            sweeper.place()
+
+
 
 
     # returns the N best genomes

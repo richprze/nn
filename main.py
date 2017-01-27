@@ -32,17 +32,17 @@ class Board(object):
     def draw_line(self, start, end):
         return self.canvas.create_line(start[0], start[1], end[0], end[1], fill="#D6D6D6")
 
-    def add_mine(self):
-        self.canvas.create_rectangle(150,150,152,152, fill="blue", outline="blue")
+    def create_mines(self):
+        settings.mines = []
+        for i in range(0, inputs.NUMMINES):
+            x = round(random() * inputs.XSIZE)
+            y = round(random() * inputs.YSIZE)
+            settings.mines.append({'pos': [x, y], 'id': self.place_object('mine', [x, y])})
+
+    def reset(self):
+        self.canvas.delete('all')
         self.canvas.update()
 
-def move_mines():
-    for mine in mines:
-        x = -5 if random() < .5 else 5
-        y = -5 if random() < .5 else 5
-        settings.board.canvas.move(mine['id'], x, y)
-        mine['pos'] = [mine['pos'][0] + x, mine['pos'][1] + y]
-        # mine['pos'] = [x+y for x,y in zip(min['pos'], [x,y])]
 
 
 print(__name__)
@@ -51,14 +51,10 @@ print(__name__)
 settings.root = Tk()
 settings.board = Board(settings.root)
 
-times = 100  # inputs.NUMTICKS
+times = 50  # inputs.NUMTICKS
 gens = 1 # # of generations to evolve; 1 = no evolution
 
-# initialize mines
-for i in range(0, inputs.NUMMINES):
-    x = round(random() * inputs.XSIZE)
-    y = round(random() * inputs.YSIZE)
-    settings.mines.append({'pos': [x, y], 'id': settings.board.place_object('mine', [x, y])})
+settings.board.create_mines()
 
 population = Population()
 
