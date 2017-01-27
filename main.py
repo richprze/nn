@@ -51,7 +51,7 @@ print(__name__)
 settings.root = Tk()
 settings.board = Board(settings.root)
 
-times = 100  # inputs.NUMTICKS
+times = 50  # inputs.NUMTICKS
 gens = 3 # # of generations to evolve; 1 = no evolution
 
 settings.board.create_mines()
@@ -78,7 +78,6 @@ for k in range(0,gens):
         settings.board.label.configure(text="Tick: {} | Mines: {}".format(l+1, settings.num_mines_found))
         # wait for 1 / FPS seconds to pass
         delta = time.time() - last_update
-        print("{}s elapsed.".format(delta))
         time.sleep(max(0,1/inputs.FPS - delta))
         # update board
         settings.board.update()

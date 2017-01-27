@@ -1,4 +1,4 @@
-from random import random, randint
+from random import random, randint, uniform
 from math import exp, pi, sqrt, sin, cos
 import inputs
 import settings
@@ -107,7 +107,6 @@ class Sweeper:
 
         self.closest_mine_id = -1
 
-        if(self.id == 41): print(self.brain.get_weights)
 
     def __repr__(self):
         return "<Sweeper - pos: {}, id: {}, rot: {}, fitness: {}>".format(self.position, self.id, self.rotation, self.fitness)
@@ -220,7 +219,6 @@ class Population: # Holds the population. Does the "game" then the genetic algor
         for i in range(0, self.pop_size):
             sweeper = Sweeper()
             sweeper.place()
-            print(sweeper.id)
             self.sweepers.append(sweeper)
 
         # TODO: remove later, this is just for show
@@ -286,16 +284,22 @@ class Population: # Holds the population. Does the "game" then the genetic algor
         return sweeper_selection[rand]
 
     def crossover(self, mom, dad):
-        if random() >= inputs.CROSSOVERRATE:
-            return [mom, dad]
-        else:
+        if random() < inputs.CROSSOVERRATE:
+            print("Crossing over")
             xover_pnt = round(random() * (len(mom) - 1))
             kid1 = mom[:xover_pnt] + dad[xover_pnt:]
             kid2 = dad[:xover_pnt] + mom[xover_pnt:]
             return [kid1, kid2]
 
+        print("No crossover")
+        return [mom, dad]
+
     def mutate(self, chromo):
-        # TODO: mutation
+        for i, v in enumerate(chromo):
+            if random() < inputs.MUTATIONRATE:
+                # print("mutating")
+                # pertube
+                chromo[i] += uniform(-1,1) * inputs.MAXPERTUBATION
         return chromo
 
 
@@ -335,7 +339,13 @@ class Population: # Holds the population. Does the "game" then the genetic algor
             kids = self.crossover(mom, dad)
 
             # Mutate
+            print('\nPre and most mutation:')
+            orig_kids = [x[:] for x in kids]
             kids = [self.mutate(x) for x in kids]
+            if kids == orig_kids:
+                print("no mutation")
+            else:
+                print("Mutation!")
 
 
             # add to new pop
