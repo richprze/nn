@@ -1,3 +1,4 @@
+from tkinter import *
 from random import random, randint, uniform
 from math import exp, pi, sqrt, sin, cos
 import inputs
@@ -388,3 +389,46 @@ class Population: # Holds the population. Does the "game" then the genetic algor
         self.worst_fitness = 999999999
         self.avg_fitness = 0
         settings.num_mines_found = 0
+
+
+class Board():
+    def __init__(self):
+        self.root = Tk()
+        # self.root = parent
+        self.canvas = Canvas(self.root, bg="white", height=inputs.YSIZE, width=inputs.XSIZE)
+        self.label = Label(self.root, text="Tick: 0 | Mines: 0")
+        self.label.pack()
+        self.canvas.pack()
+
+    def update(self):
+        self.canvas.update()
+
+    def place_object(self, obj, pos):
+        if obj == 'sweeper':
+            pad = inputs.SWEEPERSIZE
+            data = {"fill": "", "outline": "green", "width": 1}
+        elif obj == 'new mine':
+            pad = inputs.MINESIZE
+            data = {"fill": "red", "outline": "red"}
+        else:
+            pad = inputs.MINESIZE
+            data = {"fill": "#F5A9A9", "outline": "#F5A9A9"}
+
+        return self.canvas.create_rectangle(obj_tuple(pos, pad), data)
+
+    def draw_line(self, start, end):
+        return self.canvas.create_line(start[0], start[1], end[0], end[1], fill="#D6D6D6")
+
+    def create_mines(self):
+        settings.mines = []
+        for i in range(0, inputs.NUMMINES):
+            x = round(random() * inputs.XSIZE)
+            y = round(random() * inputs.YSIZE)
+            settings.mines.append({'pos': [x, y], 'id': self.place_object('mine', [x, y])})
+
+    def reset(self):
+        self.canvas.delete('all')
+        self.canvas.update()
+
+
+
