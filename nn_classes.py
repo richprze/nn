@@ -257,6 +257,8 @@ class Population: # Holds the population. Does the "game" then the genetic algor
     def sort_sweepers(self):
         sweeper_fits = [{'id': key, 'fitness': sweeper.fitness} for key, sweeper in enumerate(self.sweepers)]
         self.sweepers_sorted = sorted(sweeper_fits, key=lambda k: k['fitness'], reverse=True)
+        self.most_fit = self.sweepers_sorted[0]['id']
+        self.best_fitness = self.sweepers_sorted[0]['fitness']
 
     # uses roulette / random selection to pick a chromosome from the pop
     def get_chromo_roulette(self):
@@ -265,9 +267,9 @@ class Population: # Holds the population. Does the "game" then the genetic algor
         for sweeper in self.sweepers_sorted:
             # "+1" to include sweepers with 0 fitness (or do we not want to include them...?
             total_fitness += sweeper['fitness'] + 1
-            sweeper_selection.extend([sweeper['id'] for i in range(0, sweeper['fitness'] + 1)])
+            sweeper_selection.extend([sweeper['id']] * (sweeper['fitness'] + 1))
 
-        rand = round(random() * total_fitness)
+        rand = round(random() * (total_fitness - 1))
         return sweeper_selection[rand]
 
     def get_chromo_rank_selection(self):
@@ -276,10 +278,11 @@ class Population: # Holds the population. Does the "game" then the genetic algor
         rank = len(self.sweepers_sorted)
         for sweeper in self.sweepers_sorted:
             total_fitness += rank
-            sweeper_selection.extend([sweeper['id'] for i in range(0, rank)])
+            sweeper_selection.extend([sweeper['id']] * rank)
             rank -= 1
 
-        rand = round(random() * total_fitness)
+        print(sweeper_selection)
+        rand = round(random() * (total_fitness - 1))
         return sweeper_selection[rand]
 
     def crossover(self, mom, dad):
@@ -305,21 +308,12 @@ class Population: # Holds the population. Does the "game" then the genetic algor
         # 4. Placement - put new offspring in new population
 
         print("Evolving {} sweepers!".format(len(self.sweepers)))
+        print("Num_mines_found = {}; total_fitness = {}".format(settings.num_mines_found, self.total_fitness))
 
         # Sort
         self.sort_sweepers()
 
         new_pop = []
-
-        ## SHIT ##
-        # Calling Sweeper() actually places the sweeper. So...
-        #   First, make sure all data from prev generation is saved
-        #   Second, remove from board:
-        #       Old mines
-        #       Old sweepers
-        #   Third, reset everything (so removing above could be considered part of the reset)
-        #   Fourth, EVOLVE <- this will place new sweepers on board
-        #   Fifth, start running / ticks again
 
         
         # elitism - take top 2 or 4 sweepers and pass on
@@ -354,14 +348,17 @@ class Population: # Holds the population. Does the "game" then the genetic algor
         print("New pop len: {}".format(len(new_pop)))
         print("Old pop len: {}".format(len(self.sweepers)))
 
-        settings.board.reset()
-        time.sleep(2)
-        settings.board.create_mines()
-        # place new sweepers
-        for sweeper in new_pop:
-            print(sweeper)
-            sweeper.place()
+        print(self.sweepers_sorted)
+        print("Summary for gen {}:".format(self.generation))
+        print("total fitness: {} | most fit: {} | best fitness: {}".format(self.total_fitness, self.most_fit, self.best_fitness))
+        settings.stats.append({'gen': self.generation, 'mines': self.total_fitness, 'high': self.best_fitness})
 
+
+        # update population.sweepers to new pop
+        self.sweepers = new_pop
+        self.sweepers_sorted = []
+
+        self.generation += 1
 
 
 
@@ -376,6 +373,8 @@ class Population: # Holds the population. Does the "game" then the genetic algor
     # reset all fitness vars/stats
     def reset(self):
         self.total_fitness = 0
+        self.most_fit = 0
         self.best_fitness = 0
         self.worst_fitness = 999999999
         self.avg_fitness = 0
+        settings.num_mines_found = 0

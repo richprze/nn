@@ -51,8 +51,8 @@ print(__name__)
 settings.root = Tk()
 settings.board = Board(settings.root)
 
-times = 50  # inputs.NUMTICKS
-gens = 1 # # of generations to evolve; 1 = no evolution
+times = 100  # inputs.NUMTICKS
+gens = 3 # # of generations to evolve; 1 = no evolution
 
 settings.board.create_mines()
 
@@ -67,12 +67,14 @@ print(population.sweepers[0].brain.get_weights())
 
 last_update = time.time()
 for k in range(0,gens):
+    print("Starting generation: {}".format(population.generation))
     for l in range(0,times):
         # move sweepers to next positions
         for sweeper in population.sweepers:
             sweeper.move_sweeper()
             sweeper.handle_mines()
-        # update label
+        # update fitness and label
+        population.total_fitness = settings.num_mines_found
         settings.board.label.configure(text="Tick: {} | Mines: {}".format(l+1, settings.num_mines_found))
         # wait for 1 / FPS seconds to pass
         delta = time.time() - last_update
@@ -86,9 +88,21 @@ for k in range(0,gens):
     # EVOLVE + UPDATE pop
     population.evolve()
 
+    population.reset()
+    settings.board.reset()
+    time.sleep(2)
+    settings.board.create_mines()
 
+    # place new sweepers
+    for sweeper in population.sweepers:
+        sweeper.place()
 
-    # RESET board + REDRAW
+    print(population.sweepers)
+
+    settings.board.update()
+
+    for stat in settings.stats:
+        print(stat)
 
 
 settings.root.mainloop()
