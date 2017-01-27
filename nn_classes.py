@@ -321,7 +321,7 @@ class Population: # Holds the population. Does the "game" then the genetic algor
 
         
         # elitism - take top 2 or 4 sweepers and pass on
-        for sweeper in self.sweepers_sorted[0:2]:
+        for sweeper in self.sweepers_sorted[0:inputs.NUMELITE]:
             weights = self.sweepers[sweeper['id']].brain.get_weights()
             print("Elite ID: {}".format(sweeper['id']))
             print(weights)

@@ -51,8 +51,8 @@ print(__name__)
 settings.root = Tk()
 settings.board = Board(settings.root)
 
-times = 50  # inputs.NUMTICKS
-gens = 3 # # of generations to evolve; 1 = no evolution
+times = 200  # inputs.NUMTICKS
+gens = 20 # # of generations to evolve; 1 = no evolution
 
 settings.board.create_mines()
 
