@@ -25,7 +25,7 @@ if __name__ == '__main__':
                 sweeper.handle_mines()
             # update fitness and label
             population.total_fitness = settings.num_mines_found
-            settings.board.label.configure(text="Tick: {} | Mines: {}".format(l+1, settings.num_mines_found))
+            settings.board.label.configure(text="Gen: {} | Tick: {} | Mines: {}".format(population.generation, l+1, settings.num_mines_found))
             # wait for 1 / FPS seconds to pass
             delta = time.time() - last_update
             time.sleep(max(0,1/inputs.FPS - delta))
@@ -54,4 +54,4 @@ if __name__ == '__main__':
             print(stat)
 
 
-    settings.root.mainloop()
+    settings.board.root.mainloop()

@@ -24,4 +24,4 @@ GENERATIONS = 30
 XSIZE = 400
 YSIZE = 400
 SCALE = 2 # at a minimum everything will be 'SCALE' pixels in size
-FPS = 20 # 1 frames per second
+FPS = 40 # 1 frames per second

@@ -396,7 +396,7 @@ class Board():
         self.root = Tk()
         # self.root = parent
         self.canvas = Canvas(self.root, bg="white", height=inputs.YSIZE, width=inputs.XSIZE)
-        self.label = Label(self.root, text="Tick: 0 | Mines: 0")
+        self.label = Label(self.root, text="Gen: 0 | Tick: 0 | Mines: 0")
         self.label.pack()
         self.canvas.pack()
 
