@@ -1,5 +1,5 @@
 from random import random
-from nn_classes import Population, Sweeper, obj_tuple, Board
+from nn_classes import Population, Sweeper, obj_tuple, Board, create_mines
 import time
 import inputs
 import settings
@@ -9,9 +9,8 @@ if __name__ == '__main__':
     times = inputs.NUMTICKS  
     gens = inputs.GENERATIONS # of generations to evolve; 1 = no evolution
 
-    settings.board = Board()
-
-    settings.board.create_mines()
+    if inputs.CANVAS: settings.board = Board()
+    create_mines()
 
     population = Population()
 
@@ -25,33 +24,37 @@ if __name__ == '__main__':
                 sweeper.handle_mines()
             # update fitness and label
             population.total_fitness = settings.num_mines_found
-            settings.board.label.configure(text="Gen: {} | Tick: {} | Mines: {}".format(population.generation, l+1, settings.num_mines_found))
-            # wait for 1 / FPS seconds to pass
-            delta = time.time() - last_update
-            time.sleep(max(0,1/inputs.FPS - delta))
-            # update board
-            settings.board.update()
+            if inputs.CANVAS:
+                settings.board.label.configure(text="Gen: {} | Tick: {} | Mines: {}".format(population.generation, l+1, settings.num_mines_found))
+                # wait for 1 / FPS seconds to pass
+                delta = time.time() - last_update
+                time.sleep(max(0,1/inputs.FPS - delta))
+                # update board
+                settings.board.update()
 
-            last_update = time.time()
+                last_update = time.time()
 
         # EVOLVE + UPDATE pop
         population.evolve()
 
         population.reset()
-        settings.board.reset()
-        time.sleep(2)
-        settings.board.create_mines()
+        if inputs.CANVAS:
+            settings.board.reset()
+            time.sleep(.5 )
+        create_mines()
 
         # place new sweepers
-        for sweeper in population.sweepers:
-            sweeper.place()
+        if inputs.CANVAS:
+            for sweeper in population.sweepers:
+                sweeper.place()
 
         print(population.sweepers)
 
-        settings.board.update()
+        if inputs.CANVAS: settings.board.update()
 
+        print("Gen | Mines | High")
         for stat in settings.stats:
-            print(stat)
+            print("{} | {} | {}".format(stat['gen'], stat['mines'], stat['high']))
 
 
-    settings.board.root.mainloop()
+    if inputs.CANVAS: settings.board.root.mainloop()

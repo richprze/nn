@@ -16,6 +16,17 @@ def vec_diff(sweeper, mine):
 def obj_tuple(pos, pad):
     return (pos[0] - pad, pos[1] - pad, pos[0] + pad, pos[1] + pad)
 
+def create_mines():
+    settings.mines = []
+    for i in range(0, inputs.NUMMINES):
+        x = round(random() * inputs.XSIZE)
+        y = round(random() * inputs.YSIZE)
+        if inputs.CANVAS:
+            settings.mines.append({'pos': [x, y], 'id': settings.board.place_object('mine', [x, y])})
+        else:
+            settings.mines.append({'pos': [x, y], 'id': -1})
+
+
 class NeuralNet:
     def __init__(self, num_inputs, num_outputs, num_layers, num_neurons):
         self.num_inputs = num_inputs
@@ -138,11 +149,7 @@ class Sweeper:
         closest_mine, self.closest_mine_id = self.get_closest_mine()
 
         # get left and right track
-        # if(self.id == 41): print("Sweeper: {}".format(self.id))
-        # if(self.id == 41): print("Mine - x: {}, y: {}".format(closest_mine[0], closest_mine[1]))
-        # if (self.id == 41): print("Rotation: {}, look.x: {}, look.y: {}".format(self.rotation, sin(self.rotation), cos(self.rotation)))
         tracks = self.get_output([closest_mine[0], closest_mine[1], sin(self.rotation), cos(self.rotation)])
-        # if (self.id == 41): print("Tracks - left: {}, right: {}".format(tracks[0], tracks[1]))
 
         # takes left and right track velocities / forces (outputs from NN) and moves the sweeper
         # will be between 0 and 1
@@ -183,7 +190,7 @@ class Sweeper:
             self.position[1] = self.position[1] - inputs.YSIZE
 
         # move on canvas
-        settings.board.canvas.coords(self.id, obj_tuple(self.position, inputs.SWEEPERSIZE))
+        if inputs.CANVAS: settings.board.canvas.coords(self.id, obj_tuple(self.position, inputs.SWEEPERSIZE))
 
     def handle_mines(self):
         # check if landed on closest mine
@@ -195,10 +202,13 @@ class Sweeper:
             # handle it
             self.fitness += 1
             settings.num_mines_found += 1
-            settings.board.canvas.delete(settings.mines[self.closest_mine_id]['id'])
+            if inputs.CANVAS: settings.board.canvas.delete(settings.mines[self.closest_mine_id]['id'])
             x = round(random() * inputs.XSIZE)
             y = round(random() * inputs.YSIZE)
-            settings.mines[self.closest_mine_id] = {'pos': [x, y], 'id': settings.board.place_object('new mine', [x, y])}
+            if inputs.CANVAS:
+                settings.mines[self.closest_mine_id] = {'pos': [x, y], 'id': settings.board.place_object('new mine', [x, y])}
+            else:
+                settings.mines[self.closest_mine_id] = {'pos': [x, y], 'id': -1}
 
 
 class Population: # Holds the population. Does the "game" then the genetic algorithm to evolve a population
@@ -219,7 +229,7 @@ class Population: # Holds the population. Does the "game" then the genetic algor
         # initiatilize pop with Sweepers() - (random weights and fitness = 0)
         for i in range(0, self.pop_size):
             sweeper = Sweeper()
-            sweeper.place()
+            if inputs.CANVAS: sweeper.place()
             self.sweepers.append(sweeper)
 
         # TODO: remove later, this is just for show
@@ -230,7 +240,7 @@ class Population: # Holds the population. Does the "game" then the genetic algor
             settings.board.draw_line(sweeper.position, closest_mine)
         '''
 
-        settings.board.update()
+        if inputs.CANVAS: settings.board.update()
 
 
 
@@ -295,6 +305,16 @@ class Population: # Holds the population. Does the "game" then the genetic algor
         print("No crossover")
         return [mom, dad]
 
+    def crossover_average(self, mom, dad):
+        # TODO: do crossover by taking average of the 2 weights (1 from each parent)
+        if random() < inputs.CROSSOVERRATE:
+            print("Crossing over, average")
+            kid = [float(x + y) / 2 for x, y in zip(mom, dad)]
+            return [kid, kid[:]]
+
+        print("No crossover, average")
+        return [mom, dad]
+
     def mutate(self, chromo):
         for i, v in enumerate(chromo):
             if random() < inputs.MUTATIONRATE:
@@ -324,7 +344,7 @@ class Population: # Holds the population. Does the "game" then the genetic algor
         # elitism - take top 2 or 4 sweepers and pass on
         for sweeper in self.sweepers_sorted[0:inputs.NUMELITE]:
             weights = self.sweepers[sweeper['id']].brain.get_weights()
-            print("Elite ID: {}".format(sweeper['id']))
+            print("Elite ID: {}, Fitness: {}".format(sweeper['id'], sweeper['fitness']))
             print(weights)
             new = Sweeper()
             new.brain.update_weights(weights)
@@ -334,13 +354,17 @@ class Population: # Holds the population. Does the "game" then the genetic algor
         while len(new_pop) < len(self.sweepers):
             # crossover
             # get 2 parents' weights
-            mom = self.sweepers[self.get_chromo_roulette()].brain.get_weights()
-            dad = self.sweepers[self.get_chromo_roulette()].brain.get_weights()
+            print("Roulette selection:")
+            mom_id = self.get_chromo_roulette()
+            mom = self.sweepers[mom_id].brain.get_weights()
+            dad_id = self.get_chromo_roulette()
+            dad = self.sweepers[dad_id].brain.get_weights()
+            print("Fitnesses: mom = {} | dad = {}".format(self.sweepers[mom_id].fitness, self.sweepers[dad_id].fitness))
 
             kids = self.crossover(mom, dad)
+            # kids = self.crossover_average(mom, dad)
 
             # Mutate
-            print('\nPre and most mutation:')
             orig_kids = [x[:] for x in kids]
             kids = [self.mutate(x) for x in kids]
             if kids == orig_kids:
@@ -371,11 +395,6 @@ class Population: # Holds the population. Does the "game" then the genetic algor
 
         self.generation += 1
 
-
-
-    # returns the N best genomes
-    def get_N_best(self):
-        return None
 
     # update init variables
     def calc_fitness_stats(self):
@@ -418,13 +437,6 @@ class Board():
 
     def draw_line(self, start, end):
         return self.canvas.create_line(start[0], start[1], end[0], end[1], fill="#D6D6D6")
-
-    def create_mines(self):
-        settings.mines = []
-        for i in range(0, inputs.NUMMINES):
-            x = round(random() * inputs.XSIZE)
-            y = round(random() * inputs.YSIZE)
-            settings.mines.append({'pos': [x, y], 'id': self.place_object('mine', [x, y])})
 
     def reset(self):
         self.canvas.delete('all')
