@@ -384,7 +384,6 @@ class Population: # Holds the population. Does the "game" then the genetic algor
         return [mom, dad]
 
     def crossover_average(self, mom, dad):
-        # TODO: do crossover by taking average of the 2 weights (1 from each parent)
         if random() < inputs.CROSSOVERRATE:
             print("Crossing over, average")
             kid = [float(x + y) / 2 for x, y in zip(mom, dad)]
@@ -393,12 +392,24 @@ class Population: # Holds the population. Does the "game" then the genetic algor
         print("No crossover, average")
         return [mom, dad]
 
+    def crossover_sum(self, mom, dad):
+        if random() < inputs.CROSSOVERRATE:
+            print("crossing over, sum")
+            kid = [x + y for x, y in zip(mom, dad)]
+            return [kid, kid[:]]
+
+        print("No crossover, sum")
+        return [mom, dad]
+
     def mutate(self, chromo):
         for i, v in enumerate(chromo):
             if random() < inputs.MUTATIONRATE:
-                # print("mutating")
                 # pertube
                 chromo[i] += uniform(-1,1) * inputs.MAXPERTUBATION
+
+                # OR #
+                # Flip sign
+                # chromo[i] *= -1
         return chromo
 
 
@@ -441,8 +452,10 @@ class Population: # Holds the population. Does the "game" then the genetic algor
 
             if inputs.CROSSOVERTYPE == 'point':
                 kids = self.crossover(mom, dad)
-            else:
+            elif inputs.CROSSOVERTYPE == 'average':
                 kids = self.crossover_average(mom, dad)
+            else:
+                kids = self.crossover_sum(mom, dad)
 
             # Mutate
             orig_kids = [x[:] for x in kids]
