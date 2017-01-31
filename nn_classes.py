@@ -1,6 +1,6 @@
 from tkinter import *
 from random import random, randint, uniform
-from math import exp, pi, sqrt, sin, cos
+from math import exp, pi, sqrt, sin, cos, acos, atan2
 import inputs
 import settings
 import time
@@ -12,6 +12,18 @@ def vec_dist(vec1, vec2):
 def vec_diff(sweeper, mine):
     # should be [mine] - [sweeper] to get vec direction from sweeper to mine
     return [mine[0]-sweeper[0], mine[1]-sweeper[1]]
+
+def vec_diff_unit(sweeper, mine):
+    vec = vec_diff(sweeper, mine)
+    mag = vec_dist(sweeper, mine)
+    return [x / mag for x in vec]
+
+def vector_angle_to(from_vec, to_vec):
+    return atan2(from_vec[1], from_vec[0]) - atan2(to_vec[1], to_vec[0])
+
+def vector_abs_angle(vec1, vec2):
+    dot_product = sum(x * y for x, y in zip(vec1, vec2))
+    return acos(dot_product)
 
 def obj_tuple(pos, pad):
     return (pos[0] - pad, pos[1] - pad, pos[0] + pad, pos[1] + pad)
@@ -54,7 +66,7 @@ class NeuralNet:
         weights = []
         # the '+1' on inputs is for the bias/threshold
         for i in range(0,num_inputs+1):
-            weights.append(random())
+            weights.append(uniform(-1,1))
         return weights
 
     def create_layer(self, num_neurons, num_inputs):
@@ -105,7 +117,13 @@ class NeuralNet:
         return outputs
 
     def sigmoid(self, number):
-        return (1 / (1 + exp(-number)/1))
+        # Overflow error when -number is > 700
+        try:
+            ans = (1 / (1 + exp(-number)/1))
+        except OverflowError:
+            ans = (1 / (1 + exp(700)/1))
+            # print("ERROR: overflow with number to sigmoid = {}".format(number))
+        return ans
 
 class Sweeper:
     def __init__(self):
@@ -114,7 +132,8 @@ class Sweeper:
 
         # random start position & look direction
         self.position = [randint(0,inputs.XSIZE),randint(0,inputs.YSIZE)]
-        self.id = -1 #settings.board.place_object('sweeper', self.position)
+        self.id = -1
+        self.boardid = -1 #settings.board.place_object('sweeper', self.position)
         self.rotation = random() * 2 * pi
 
         self.closest_mine_id = -1
@@ -123,8 +142,8 @@ class Sweeper:
     def __repr__(self):
         return "<Sweeper - pos: {}, id: {}, rot: {}, fitness: {}>".format(self.position, self.id, self.rotation, self.fitness)
 
-    def place(self):
-        self.id = settings.board.place_object('sweeper', self.position)
+    def place(self, type='sweeper'):
+        self.boardid = settings.board.place_object(type, self.position)
 
     # Function to take inputs and get outputs
     def get_output(self, inputs):
@@ -190,7 +209,58 @@ class Sweeper:
             self.position[1] = self.position[1] - inputs.YSIZE
 
         # move on canvas
-        if inputs.CANVAS: settings.board.canvas.coords(self.id, obj_tuple(self.position, inputs.SWEEPERSIZE))
+        if inputs.CANVAS: settings.board.canvas.coords(self.boardid, obj_tuple(self.position, inputs.SWEEPERSIZE))
+
+    def move_sweeper_ideal(self):
+        # get nearest mine
+        closest_mine, self.closest_mine_id = self.get_closest_mine()
+
+        # to move need a direction and a magnitude
+        # get angle of rotation to face mine
+        # calculate rotational angle in radians (between 0 and 180 deg, 90 deg = straight)
+        unit_vec_to_mine = vec_diff_unit(self.position, closest_mine)
+        sweeper_look = [sin(self.rotation), cos(self.rotation)]  # x,y
+        rot_angle_to_mine = vector_angle_to(sweeper_look, unit_vec_to_mine)
+        # limit to 90 deg (pi / 2)
+        rot_angle = min(pi / 2, max(-1 * pi / 2, rot_angle_to_mine))
+
+        # add to current rotation
+        self.rotation += rot_angle
+        # new look
+        look = [sin(self.rotation), cos(self.rotation)]  # x,y
+
+        # calculate absolute speed / magnitude
+        # old - need a way to represent that relationshp between angle and max speed
+            # min speed is what happens if rotate 90 degrees
+            # max speed is what happens if go straight
+            # BUT, max speed should be tempered if sweeper will go past mine
+            # BUT, BUT, this is actually handled because the error rate of hitting a mine == the max speed
+            #   , so we can never "go past"
+        speed = (((pi / 2) - abs(rot_angle)) / (pi / 2) + 1 ) * inputs.MAXSPEED
+
+        # vector to new position
+        to_new_pos = [x * speed for x in look]
+
+        # new position (sum the two vectors)
+        self.position = [x + y for x, y in zip(self.position, to_new_pos)]
+
+        # account for window and wrap around
+        # if x is negative, have it come in from the right
+        if self.position[0] < 0:
+            self.position[0] = inputs.XSIZE + self.position[0]
+        # if x is greater than window size, have it come in the left
+        elif self.position[0] > inputs.XSIZE:
+            self.position[0] = self.position[0] - inputs.XSIZE
+
+        # if y is negative, have it come up from bottom
+        if self.position[1] < 0:
+            self.position[1] = inputs.YSIZE + self.position[1]
+        # if y is > window size, have it come down from top
+        elif self.position[1] > inputs.YSIZE:
+            self.position[1] = self.position[1] - inputs.YSIZE
+
+        # move on canvas
+        if inputs.CANVAS: settings.board.canvas.coords(self.boardid, obj_tuple(self.position, inputs.SWEEPERSIZE))
 
     def handle_mines(self):
         # check if landed on closest mine
@@ -198,7 +268,7 @@ class Sweeper:
         #           ** If 2 sweepers find same mine, first one in array "gets" it (record this somehow)
 
         closest_mine = settings.mines[self.closest_mine_id]['pos']
-        if vec_dist(closest_mine, self.position) < 2:
+        if vec_dist(closest_mine, self.position) <= inputs.MAXSPEED:
             # handle it
             self.fitness += 1
             settings.num_mines_found += 1
@@ -238,6 +308,14 @@ class Population: # Holds the population. Does the "game" then the genetic algor
         for sweeper in self.sweepers:
             closest_mine, id = sweeper.get_closest_mine()
             settings.board.draw_line(sweeper.position, closest_mine)
+        '''
+
+        # initialize "ideal" sweeper
+        # in 500 ticks, ideal sweeper will find around 40 mines
+        '''
+        ideal = Sweeper()
+        if inputs.CANVAS: ideal.place('ideal')
+        self.ideal = ideal
         '''
 
         if inputs.CANVAS: settings.board.update()
@@ -361,8 +439,10 @@ class Population: # Holds the population. Does the "game" then the genetic algor
             dad = self.sweepers[dad_id].brain.get_weights()
             print("Fitnesses: mom = {} | dad = {}".format(self.sweepers[mom_id].fitness, self.sweepers[dad_id].fitness))
 
-            kids = self.crossover(mom, dad)
-            # kids = self.crossover_average(mom, dad)
+            if inputs.CROSSOVERTYPE == 'point':
+                kids = self.crossover(mom, dad)
+            else:
+                kids = self.crossover_average(mom, dad)
 
             # Mutate
             orig_kids = [x[:] for x in kids]
@@ -386,6 +466,7 @@ class Population: # Holds the population. Does the "game" then the genetic algor
         print(self.sweepers_sorted)
         print("Summary for gen {}:".format(self.generation))
         print("total fitness: {} | most fit: {} | best fitness: {}".format(self.total_fitness, self.most_fit, self.best_fitness))
+        # print("ideal fitness: {}".format(self.ideal.fitness))
         settings.stats.append({'gen': self.generation, 'mines': self.total_fitness, 'high': self.best_fitness})
 
 
@@ -429,6 +510,9 @@ class Board():
         elif obj == 'new mine':
             pad = inputs.MINESIZE
             data = {"fill": "red", "outline": "red"}
+        elif obj == 'ideal':
+            pad = inputs.SWEEPERSIZE
+            data = {"fill": "black", "outline": "black", "width": 1}
         else:
             pad = inputs.MINESIZE
             data = {"fill": "#F5A9A9", "outline": "#F5A9A9"}

@@ -17,13 +17,18 @@ if __name__ == '__main__':
     last_update = time.time()
     for k in range(0,gens):
         print("Starting generation: {}".format(population.generation))
+        gen_start_time = time.time()
         for l in range(0,times):
             # move sweepers to next positions
             for sweeper in population.sweepers:
                 sweeper.move_sweeper()
                 sweeper.handle_mines()
+            '''
+            population.ideal.move_sweeper_ideal()
+            population.ideal.handle_mines()
+            '''
             # update fitness and label
-            population.total_fitness = settings.num_mines_found
+            population.total_fitness = settings.num_mines_found # - population.ideal.fitness
             if inputs.CANVAS:
                 settings.board.label.configure(text="Gen: {} | Tick: {} | Mines: {}".format(population.generation, l+1, settings.num_mines_found))
                 # wait for 1 / FPS seconds to pass
@@ -38,6 +43,9 @@ if __name__ == '__main__':
         population.evolve()
 
         population.reset()
+
+        # population.ideal.fitness = 0
+
         if inputs.CANVAS:
             settings.board.reset()
             time.sleep(.5 )
@@ -47,6 +55,7 @@ if __name__ == '__main__':
         if inputs.CANVAS:
             for sweeper in population.sweepers:
                 sweeper.place()
+            # population.ideal.place('ideal')
 
         print(population.sweepers)
 
@@ -55,6 +64,8 @@ if __name__ == '__main__':
         print("Gen | Mines | High")
         for stat in settings.stats:
             print("{} | {} | {}".format(stat['gen'], stat['mines'], stat['high']))
+
+        print("Gen {} took {} seconds".format(settings.stats[len(settings.stats)-1]['gen'], time.time() - gen_start_time))
 
 
     if inputs.CANVAS: settings.board.root.mainloop()
