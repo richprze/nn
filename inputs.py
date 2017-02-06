@@ -1,7 +1,7 @@
 # Neural Net Inputs
 INPUTS = 4
-LAYERS = 8
-NEURONS = 8
+LAYERS = 4
+NEURONS = 16
 OUTPUTS = 2
 
 # Sweeping Inputs
