@@ -137,6 +137,9 @@ class Sweeper:
         self.rotation = random() * 2 * pi
 
         self.closest_mine_id = -1
+        self.closest_mine = []
+
+        self.get_closest_mine()
 
 
     def __repr__(self):
@@ -161,14 +164,12 @@ class Sweeper:
                 closest_mine = mine['pos']
                 closest_mine_id = key
 
-        return closest_mine, closest_mine_id
+        self.closest_mine = closest_mine
+        self.closest_mine_id = closest_mine_id
 
     def move_sweeper(self):
-        # get nearest mine
-        closest_mine, self.closest_mine_id = self.get_closest_mine()
-
         # get left and right track
-        tracks = self.get_output([closest_mine[0], closest_mine[1], sin(self.rotation), cos(self.rotation)])
+        tracks = self.get_output([self.closest_mine[0], self.closest_mine[1], sin(self.rotation), cos(self.rotation)])
 
         # takes left and right track velocities / forces (outputs from NN) and moves the sweeper
         # will be between 0 and 1
@@ -213,12 +214,12 @@ class Sweeper:
 
     def move_sweeper_ideal(self):
         # get nearest mine
-        closest_mine, self.closest_mine_id = self.get_closest_mine()
+        self.get_closest_mine()
 
         # to move need a direction and a magnitude
         # get angle of rotation to face mine
         # calculate rotational angle in radians (between 0 and 180 deg, 90 deg = straight)
-        unit_vec_to_mine = vec_diff_unit(self.position, closest_mine)
+        unit_vec_to_mine = vec_diff_unit(self.position, self.closest_mine)
         sweeper_look = [sin(self.rotation), cos(self.rotation)]  # x,y
         rot_angle_to_mine = vector_angle_to(sweeper_look, unit_vec_to_mine)
         # limit to 90 deg (pi / 2)
@@ -267,8 +268,7 @@ class Sweeper:
         # future - or if land on ANY mine? Because could go in wrong direction
         #           ** If 2 sweepers find same mine, first one in array "gets" it (record this somehow)
 
-        closest_mine = settings.mines[self.closest_mine_id]['pos']
-        if vec_dist(closest_mine, self.position) <= inputs.MAXSPEED:
+        if vec_dist(self.closest_mine, self.position) <= inputs.MAXSPEED:
             # handle it
             self.fitness += 1
             settings.num_mines_found += 1
@@ -279,6 +279,9 @@ class Sweeper:
                 settings.mines[self.closest_mine_id] = {'pos': [x, y], 'id': settings.board.place_object('new mine', [x, y])}
             else:
                 settings.mines[self.closest_mine_id] = {'pos': [x, y], 'id': -1}
+            return self.closest_mine_id
+        else:
+            return None
 
 
 class Population: # Holds the population. Does the "game" then the genetic algorithm to evolve a population
@@ -317,6 +320,11 @@ class Population: # Holds the population. Does the "game" then the genetic algor
         if inputs.CANVAS: ideal.place('ideal')
         self.ideal = ideal
         '''
+        if inputs.BEST:
+            best = Sweeper()
+            best.brain.update_weights(inputs.BESTWEIGHTS)
+            if inputs.CANVAS: best.place('ideal')
+            self.best = best
 
         if inputs.CANVAS: settings.board.update()
 

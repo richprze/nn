@@ -1,0 +1,13 @@
+Output can be new unit vector towards the mine: [x,y]
+Don't limit rotation
+But, magnitude of directon is same as in move_sweeper_ideal
+  min speed is what happens if rotate 90 degrees OR MORE (so 91 degrees to 180 degrees)
+  max speed is what happens if go straight
+
+Still have to deal with clockwise vs. counterclockwise ? Maybe not
+
+So conclusion - only 2 outputs from neural net for unit vector to move [x,y]
+
+inputs are current position and look vector (or rotation angle?)
+  - If look vector then 4 inputs
+	- If rotation then 3 inputs (but how to represent rotation angle, just in radians?)

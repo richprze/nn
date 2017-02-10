@@ -20,13 +20,30 @@ if __name__ == '__main__':
         gen_start_time = time.time()
         for l in range(0,times):
             # move sweepers to next positions
+            found_mine_ids = []
             for sweeper in population.sweepers:
                 sweeper.move_sweeper()
-                sweeper.handle_mines()
+                result = sweeper.handle_mines()
+                if result: found_mine_ids.append(result)
             '''
             population.ideal.move_sweeper_ideal()
             population.ideal.handle_mines()
             '''
+            if inputs.BEST:
+                population.best.move_sweeper()
+                result = population.best.handle_mines()
+                if result: found_mine_ids.append(result)
+
+            # if mines found, get new closest mine for all sweepers that had a found mine
+            for sweeper in population.sweepers:
+                if sweeper.closest_mine_id in found_mine_ids:
+                    sweeper.get_closest_mine()
+
+            # handle for best
+            if inputs.BEST:
+                if population.best.closest_mine_id in found_mine_ids:
+                    population.best.get_closest_mine()
+            
             # update fitness and label
             population.total_fitness = settings.num_mines_found # - population.ideal.fitness
             if inputs.CANVAS:
