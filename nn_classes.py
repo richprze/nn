@@ -135,6 +135,7 @@ class Sweeper:
         self.id = -1
         self.boardid = -1 #settings.board.place_object('sweeper', self.position)
         self.rotation = random() * 2 * pi
+        self.look = [uniform(-1,1), uniform(-1,1)]
 
         self.closest_mine_id = -1
         self.closest_mine = []
@@ -168,48 +169,42 @@ class Sweeper:
         self.closest_mine_id = closest_mine_id
 
     def move_sweeper(self):
-        # get left and right track
-        tracks = self.get_output([self.closest_mine[0], self.closest_mine[1], sin(self.rotation), cos(self.rotation)])
+        # Inputs:
+            # [] Position of sweeper
+            # [] Unit look vector of sweeper
+            # [] Position of closest mine
 
-        # takes left and right track velocities / forces (outputs from NN) and moves the sweeper
-        # will be between 0 and 1
-        left = tracks[0]
-        right = tracks[1]
+        # Inputs = sweeper info + mine pos
+        # Outputs = [] vector to move (max/mine x, y will be 1/-1 but not necessarily a unit vector)
+        move_to_vec = self.get_output([self.position[0], self.position[1], self.look[0], self.look[1], self.closest_mine[0], self.closest_mine[1]])
 
-        # calculate rotational angle in radians (between 0 and 180 deg, 90 deg = straight)
-        rot_angle = (left - right) * pi / 2
+        # 0. scale to unit vector
+        mag = vec_dist(move_to_vec, [0,0])
+        try:
+            move_to_vec = [x / mag for x in move_to_vec]
+        except ZeroDivisionError:
+            print("\n\nDivide by Zero Error. X: {}, Y: {}\n\n".format(move_to_vec[0], move_to_vec[1]))
+            move_to_vec = self.look
 
-        # update sweeper's facing direction (angle from 0 to 360, but in radians)
-        self.rotation += rot_angle
+	# 1. Calc rotation angle to scale magnitude
+        rot_angle = vector_angle_to(self.look, move_to_vec)
+	
+	# 2. Save unit vector as sweeper look vector
+        self.look = move_to_vec
+        
+        # 3. Scale magnitude. 0 deg = max speed; 90 deg = half speed; 180 deg = no speed
+        speed = (((pi / 2) - abs(rot_angle)) / (pi / 2)) * inputs.MAXSPEED
 
-        # calculate direction unit vector
-        look = [sin(self.rotation), cos(self.rotation)]  # x,y
+	# 4. Calc move vector -> output unit vector * speed
+        to_new_pos = [x * speed for x in self.look]
 
-        # calculate absolute speed
-        speed = (left + right) * inputs.MAXSPEED
-
-        # vector to new position
-        to_new_pos = [x * speed for x in look]
-
-        # new position (sum the two vectors)
+	# 5. Add move vector to sweeper pos vector = MOVED
         self.position = [x + y for x, y in zip(self.position, to_new_pos)]
 
-        # account for window and wrap around
-        # if x is negative, have it come in from the right
-        if self.position[0] < 0:
-            self.position[0] = inputs.XSIZE + self.position[0]
-        # if x is greater than window size, have it come in the left
-        elif self.position[0] > inputs.XSIZE:
-            self.position[0] = self.position[0] - inputs.XSIZE
+	# 6. Handle window boundaries
+        self.handle_window_boundaries()
 
-        # if y is negative, have it come up from bottom
-        if self.position[1] < 0:
-            self.position[1] = inputs.YSIZE + self.position[1]
-        # if y is > window size, have it come down from top
-        elif self.position[1] > inputs.YSIZE:
-            self.position[1] = self.position[1] - inputs.YSIZE
-
-        # move on canvas
+	# 7. Move sweeper on canvas
         if inputs.CANVAS: settings.board.canvas.coords(self.boardid, obj_tuple(self.position, inputs.SWEEPERSIZE))
 
     def move_sweeper_ideal(self):
@@ -246,6 +241,13 @@ class Sweeper:
         self.position = [x + y for x, y in zip(self.position, to_new_pos)]
 
         # account for window and wrap around
+        self.handle_window_boundaries()
+
+        # move on canvas
+        if inputs.CANVAS: settings.board.canvas.coords(self.boardid, obj_tuple(self.position, inputs.SWEEPERSIZE))
+
+    def handle_window_boundaries(self):
+        # account for window and wrap around
         # if x is negative, have it come in from the right
         if self.position[0] < 0:
             self.position[0] = inputs.XSIZE + self.position[0]
@@ -259,9 +261,6 @@ class Sweeper:
         # if y is > window size, have it come down from top
         elif self.position[1] > inputs.YSIZE:
             self.position[1] = self.position[1] - inputs.YSIZE
-
-        # move on canvas
-        if inputs.CANVAS: settings.board.canvas.coords(self.boardid, obj_tuple(self.position, inputs.SWEEPERSIZE))
 
     def handle_mines(self):
         # check if landed on closest mine
@@ -413,11 +412,11 @@ class Population: # Holds the population. Does the "game" then the genetic algor
         for i, v in enumerate(chromo):
             if random() < inputs.MUTATIONRATE:
                 # pertube
-                chromo[i] += uniform(-1,1) * inputs.MAXPERTUBATION
+                # chromo[i] += uniform(-1,1) * inputs.MAXPERTUBATION
 
                 # OR #
                 # Flip sign
-                # chromo[i] *= -1
+                chromo[i] *= -1
         return chromo
 
 

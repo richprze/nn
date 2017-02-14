@@ -11,3 +11,25 @@ So conclusion - only 2 outputs from neural net for unit vector to move [x,y]
 inputs are current position and look vector (or rotation angle?)
   - If look vector then 4 inputs
 	- If rotation then 3 inputs (but how to represent rotation angle, just in radians?)
+
+Inputs:
+	[] Unit vector to mine
+	[] Unit look vector of sweeper
+
+Outputs;
+	[] Unit vector to move
+
+With output:
+	Cannot use output unit vector as look vector because sweeper will move with magnitude in that direction
+	*** Actually CAN because it is only a unit vector (by def b/ -1 and 1, so regardless of mines actual pos)
+
+	0. Save unit vector as sweeper look vector
+	1. Calc rotation angle to scale magnitude
+	2. Scale magnitude
+			0 deg = max speed
+			90 deg = half speed
+			180 deg = no speed
+	3. Calc move vector -> output unit vector * speed
+	4. Add move vector to sweeper pos vector = MOVED
+	5. Handle window boundaries
+	6. Move sweeper on canvas
